@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Exception;
+Use Illuminate\Support\Facades\Hash;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -29,12 +30,20 @@ class UserController extends Controller
             'password' => 'required|max:12|min:4'
         ]);
 
-   try{
-    User::create($request->all());
-   }catch(Exception $e){
-    return response()->json(["message" => $e], 500);
-   }
-     return response()->json(["message" => "User created"], 201);
+        try {
+           $user =  User::create([
+            "name"=>$request->name,
+            "email"=>$request->email,
+            "password"=>Hash::make($request->password),
+           ]);
+
+           $token = $user->createToken('accessToken')->plainTextToken;
+           return response(["user"=>$user, "token"=>$token],201);
+
+        } catch (Exception $e) {
+            return response()->json(["message" => $e], 500);
+        }
+    
         //
     }
 
@@ -44,7 +53,7 @@ class UserController extends Controller
     public function show(string $id)
     {
         $user = User::find($id);
-  return response()->json(['message'=>$user],200);
+        return response()->json(['message' => $user], 200);
         //
     }
 
@@ -54,7 +63,8 @@ class UserController extends Controller
     public function update(Request $request, string $id)
     {
         //
-        User::find($id)->update($request->all());
+        $user = User::find($id);
+        $user->update(["name" => $request->name | $user->name, "email" => $request->email, "password" => $request->password]);
     }
 
     /**
@@ -62,6 +72,11 @@ class UserController extends Controller
      */
     public function destroy(string $id)
     {
+        //
+    }
+    public function search(string $name)
+    {
+        return User::where('name','like', '%'.$name.'%')->get();
         //
     }
 }
